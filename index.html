@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Durak Haritası</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 100vh; width: 100vw; }
+    #panel 
+    {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      width: 260px;
+    }
+    input, button {
+      margin-bottom: 5px;
+      width: 100%;
+    }
+    .badge {
+      background: #2e7d32;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="panel">
+  <h3>📍 Arama</h3>
+  <label>Durak Kodu: <input type="text" id="durakKodu" /></label>
+  <button onclick="duragaGit()">🔍 Durak Koduyla Git</button>
+  <hr>
+  <label>Enlem: <input type="text" id="lat" value="41.0663" /></label>
+  <label>Boylam: <input type="text" id="lon" value="28.9960" /></label>
+  <label>Yarıçap (m): <input type="number" id="radius" value="300" /></label>
+  <button onclick="koordinatlaAra()">📍 Koordinata Git ve Ara</button>
+  <h4>📌 <span id="adet">0</span> sonuç</h4>
+  <ul id="sonuclar"></ul>
+  <button onclick="excelAktar()">
+  <img src="https://img.icons8.com/office/16/000000/ms-excel.png" alt="Excel" style="vertical-align: middle; margin-right: 5px;" />
+  Sonuçları Excel'e Aktar
+</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+   let seciliDurak = null; // ✅ BURAYA EKLE
+
+  const map = L.map('map').setView([41.0663, 28.9960], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  let duraklar = [];
+  let markers = [];
+  let circle;
+
+  fetch("durak_verisi.json")
+    .then(res => res.json())
+    .then(data => duraklar = data)
+    .catch(err => alert("Durak verisi yüklenemedi"));
+
+  function duragaGit() {
+  const kod = document.getElementById("durakKodu").value.trim();
+  const durak = duraklar.find(d => d["Durak Kodu"] == kod);
+
+  if (!durak) return alert("Durak kodu bulunamadı!");
+
+  seciliDurak = durak; // 🔥 Burası önemli
+
+  const boylam = durak.boylam;
+  const enlem = durak.enlem;
+
+  if (!boylam || !enlem) return alert("Koordinatlar eksik!");
+
+  map.setView([boylam, enlem], 17);
+
+  L.marker([boylam, enlem])
+    .addTo(map)
+    .bindPopup(`
+      <b>${durak["Durak Adı"]}</b><br>
+      İlçe: ${durak["Durak İlçe"]}<br>
+      Mahalle: ${durak["Durak Mahalle"]}<br>
+      Tip: ${durak["Durak Tipi"]}<br>
+      Yolcu: ${durak["Günlük Ortalama Yolcu Sayısı"]}
+    `)
+    .openPopup();
+
+  document.getElementById("lat").value = boylam;
+  document.getElementById("lon").value = enlem;
+}
+
+  function koordinatlaAra() {
+  const lat = parseFloat(document.getElementById("lat").value);
+  const lon = parseFloat(document.getElementById("lon").value);
+  const radius = parseInt(document.getElementById("radius").value);
+
+  if (!lat || !lon || !radius) return alert("Geçerli koordinat ve yarıçap girin!");
+
+  if (circle) map.removeLayer(circle);
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  document.getElementById("sonuclar").innerHTML = '';
+  document.getElementById("adet").textContent = '0';
+
+  map.setView([lat, lon], 16);
+  circle = L.circle([lat, lon], { radius: radius, color: 'blue', fillOpacity: 0.1 }).addTo(map);
+
+   const query = `
+[out:json][timeout:25];
+(
+  node["amenity"="hospital"](around:${radius},${lat},${lon});
+  way["amenity"="hospital"](around:${radius},${lat},${lon});
+  relation["amenity"="hospital"](around:${radius},${lat},${lon});
+
+  node["amenity"="clinic"](around:${radius},${lat},${lon});
+  way["amenity"="clinic"](around:${radius},${lat},${lon});
+  relation["amenity"="clinic"](around:${radius},${lat},${lon});
+
+  node["amenity"="school"](around:${radius},${lat},${lon});
+  way["amenity"="school"](around:${radius},${lat},${lon});
+  relation["amenity"="school"](around:${radius},${lat},${lon});
+
+  node["amenity"="university"](around:${radius},${lat},${lon});
+  way["amenity"="university"](around:${radius},${lat},${lon});
+  relation["amenity"="university"](around:${radius},${lat},${lon});
+
+  node["shop"="mall"](around:${radius},${lat},${lon});
+  way["shop"="mall"](around:${radius},${lat},${lon});
+  relation["shop"="mall"](around:${radius},${lat},${lon});
+
+  node["tourism"="museum"](around:${radius},${lat},${lon});
+  way["tourism"="museum"](around:${radius},${lat},${lon});
+  relation["tourism"="museum"](around:${radius},${lat},${lon});
+
+  node["station"="subway"](around:${radius},${lat},${lon});
+  way["station"="subway"](around:${radius},${lat},${lon});
+  relation["station"="subway"](around:${radius},${lat},${lon});
+);
+out center;
+`;
+
+fetch("https://overpass-api.de/api/interpreter", {
+  method: "POST",
+  body: query
+})
+  .then(res => res.json())
+  .then(data => {
+    let count = 0;
+    data.elements.forEach(e => {
+      const lat = e.lat || e.center?.lat;
+      const lon = e.lon || e.center?.lon;
+
+      if (!lat || !lon) return;
+
+      const isim = e.tags.name || "İsimsiz Yer";
+      const kategori = e.tags.amenity || e.tags.shop || e.tags.tourism || e.tags.station || "Kategori Yok";
+
+      if (["fuel", "bicycle_parking", "parking"].includes(kategori)) return;
+
+      const marker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>${isim}</b><br>${kategori}`);
+      markers.push(marker);
+
+      const li = document.createElement("li");
+      li.textContent = `${isim} (${kategori})`;
+      document.getElementById("sonuclar").appendChild(li);
+      count++;
+    });
+
+    document.getElementById("adet").textContent = `${count}`;
+  })
+  .catch(err => alert("Veri alınırken hata oluştu"));
+  }
+// ...
+  function excelAktar() {
+  if (!seciliDurak) return alert("Lütfen önce bir durak arayın!");
+  if (markers.length === 0) return alert("Henüz veri bulunamadı!");
+
+  const rows = [
+    ["Durak Kodu", "Durak Adı", "Durak Tipi", "İlçe", "Mahalle", "Yolcu Sayısı", "Yer İsmi", "Kategori"]
+  ];
+
+  markers.forEach(m => {
+    const popup = m.getPopup();
+    const html = popup.getContent();
+    const [nameLine, kategoriLine] = html.split("<br>");
+    const isim = nameLine.replace(/<[^>]+>/g, "");
+    const kategori = kategoriLine || "Kategori Yok";
+
+    rows.push([
+      seciliDurak["Durak Kodu"],
+      seciliDurak["Durak Adı"],
+      seciliDurak["Durak Tipi"],
+      seciliDurak["Durak İlçe"],
+      seciliDurak["Durak Mahalle"],
+      seciliDurak["Günlük Ortalama Yolcu Sayısı"],
+      isim,
+      kategori
+    ]);
+  });
+
+  let csv = rows.map(r => r.join("\t")).join("\n");
+  let blob = new Blob([csv], { type: "text/tab-separated-values" });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = `durak_sonuclari_${seciliDurak["Durak Kodu"]}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+
+</body>
+</html>

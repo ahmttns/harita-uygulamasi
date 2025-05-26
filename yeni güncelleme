@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Durak Haritası</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <style>
+  body { margin: 0; font-family: sans-serif; }
+
+  #map {
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    width: 260px;
+  }
+
+  input, button {
+    margin-bottom: 5px;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  
+  <button onclick="tumDuraklariGoster()">🗺️ Tüm Durakları Göster</button>
+  <label>Durak Tipi:
+  <select id="filtreDurakTipi">
+    <option value="">Tümü</option>
+  </select>
+</label>
+
+
+
+<label>İlçe:
+  <select id="filtreIlce">
+    <option value="">Hepsi</option>
+  </select>
+</label>
+  <h3>📍 Arama</h3>
+<label>Durak Kodu: <input type="text" id="durakKodu" /></label>
+<button onclick="duragaGit()">🔍 Durak Koduyla Git</button>
+  <hr>
+  <label>Enlem: <input type="text" id="lat" value="41.0663" /></label>
+  <label>Boylam: <input type="text" id="lon" value="28.9960" /></label>
+  <label>Yarıçap (m): <input type="number" id="radius" value="300" /></label>
+  <button onclick="koordinatlaAra()">📍 Koordinata Git ve Ara</button>
+  <button onclick="secimleriTemizle()">🧹 Seçimleri Temizle</button>
+  <h4>📌 <span id="adet">0</span> sonuç</h4>
+  <ul id="sonuclar"></ul>
+  <button onclick="excelAktar()">
+    <img src="https://img.icons8.com/office/16/000000/ms-excel.png" style="vertical-align: middle; margin-right: 5px;" />
+    Sonuçları Excel'e Aktar
+  </button>
+</div>
+
+<div id="map"></div>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+let seciliDurak = null;
+let duraklar = [];
+let markers = [];
+let circle;
+let duraklarGosterildi = false;
+
+const map = L.map('map', {
+  zoomControl: false
+}).setView([41.0663, 28.9960], 13);
+
+// Zoom kontrolünü sağ alta tekrar ekliyoruz:
+L.control.zoom({
+  position: 'bottomright'
+}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+const clusterGroup = L.markerClusterGroup();
+map.addLayer(clusterGroup);
+
+fetch("durak_verisi.json")
+  .then(res => res.json())
+  .then(data => {
+    duraklar = data;
+
+    // 🔽 Buradan sonrası sadece filtre dropdownlarını doldurmak için
+    const tipSet = new Set();
+    const ilceSet = new Set();
+
+    duraklar.forEach(d => {
+      if (d["Durak Tipi"]) tipSet.add(d["Durak Tipi"]);
+      if (d["Durak İlçe"]) ilceSet.add(d["Durak İlçe"]);
+    });
+
+    const tipSelect = document.getElementById("filtreDurakTipi");
+    const ilceSelect = document.getElementById("filtreIlce");
+
+    tipSet.forEach(tip => {
+      const opt = document.createElement("option");
+      opt.value = tip;
+      opt.textContent = tip;
+      tipSelect.appendChild(opt);
+    });
+
+    ilceSet.forEach(ilce => {
+      const opt = document.createElement("option");
+      opt.value = ilce;
+      opt.textContent = ilce;
+      ilceSelect.appendChild(opt);
+    });
+  })
+  .catch(err => alert("Durak verisi yüklenemedi!"));
+function duragaGit() {
+  const kod = document.getElementById("durakKodu").value.trim();
+  const durak = duraklar.find(d => d["Durak Kodu"] == kod);
+
+  if (!durak) return alert("Durak kodu bulunamadı!");
+  seciliDurak = durak;
+
+  const boylam = durak.boylam;
+  const enlem = durak.enlem;
+
+  if (!boylam || !enlem) return alert("Koordinatlar eksik!");
+
+  map.setView([boylam, enlem], 17);
+
+  L.marker([boylam, enlem]).addTo(map).bindPopup(`
+    <b>${durak["Durak Adı"]}</b><br>
+    İlçe: ${durak["Durak İlçe"]}<br>
+    Mahalle: ${durak["Durak Mahalle"]}<br>
+    Tip: ${durak["Durak Tipi"]}<br>
+    Yolcu: ${durak["Günlük Ortalama Yolcu Sayısı"]}
+  `).openPopup();
+
+  document.getElementById("lat").value = boylam;
+  document.getElementById("lon").value = enlem;
+}
+
+function koordinatlaAra() {
+  const lat = parseFloat(document.getElementById("lat").value);
+  const lon = parseFloat(document.getElementById("lon").value);
+  const radius = parseInt(document.getElementById("radius").value);
+
+  if (!lat || !lon || !radius) return alert("Geçerli koordinat ve yarıçap girin!");
+
+  if (circle) map.removeLayer(circle);
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  document.getElementById("sonuclar").innerHTML = '';
+  document.getElementById("adet").textContent = '0';
+
+  map.setView([lat, lon], 16);
+  circle = L.circle([lat, lon], { radius: radius, color: 'blue', fillOpacity: 0.1 }).addTo(map);
+
+  const query = `
+[out:json][timeout:25];
+(
+  node["amenity"="hospital"](around:${radius},${lat},${lon});
+  node["amenity"="clinic"](around:${radius},${lat},${lon});
+  node["amenity"="school"](around:${radius},${lat},${lon});
+  node["amenity"="university"](around:${radius},${lat},${lon});
+  node["shop"="mall"](around:${radius},${lat},${lon});
+  node["tourism"="museum"](around:${radius},${lat},${lon});
+  node["station"="subway"](around:${radius},${lat},${lon});
+);
+out center;
+`;
+
+  fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    body: query
+  })
+  .then(res => res.json())
+  .then(data => {
+    let count = 0;
+    data.elements.forEach(e => {
+      const lat = e.lat || e.center?.lat;
+      const lon = e.lon || e.center?.lon;
+      if (!lat || !lon) return;
+
+      const isim = e.tags.name || "İsimsiz Yer";
+      const kategori = e.tags.amenity || e.tags.shop || e.tags.tourism || e.tags.station || "Kategori Yok";
+
+      if (["fuel", "bicycle_parking", "parking"].includes(kategori)) return;
+
+      const renk = {
+        hospital: "red",
+        school: "green",
+        mall: "purple",
+        university: "orange",
+        museum: "teal"
+      }[kategori] || "blue";
+
+      const marker = L.circleMarker([lat, lon], {
+        radius: 8,
+        fillColor: renk,
+        fillOpacity: 0.8,
+        color: "#000",
+        weight: 1
+      }).addTo(map);
+
+      marker.bindPopup(`<b>${isim}</b><br>${kategori}`);
+      markers.push(marker);
+
+      const li = document.createElement("li");
+      li.textContent = `${isim} (${kategori})`;
+      document.getElementById("sonuclar").appendChild(li);
+      count++;
+    });
+
+    document.getElementById("adet").textContent = count;
+  })
+  .catch(err => alert("Veri alınırken hata oluştu"));
+}
+
+function excelAktar() {
+  if (!seciliDurak) return alert("Lütfen önce bir durak arayın!");
+  if (markers.length === 0) return alert("Henüz veri bulunamadı!");
+
+  const rows = [
+    ["Durak Kodu", "Durak Adı", "Durak Tipi", "İlçe", "Mahalle", "Yolcu Sayısı", "Yer İsmi", "Kategori"]
+  ];
+
+  markers.forEach((m, index) => {
+    const popup = m.getPopup().getContent();
+    const [isimSatir, kategoriSatir] = popup.split("<br>");
+    const isim = isimSatir.replace(/<[^>]*>/g, "").trim();
+    const kategori = kategoriSatir ? kategoriSatir.replace(/<[^>]*>/g, "").trim() : "Kategori Yok";
+
+    rows.push([
+      index === 0 ? seciliDurak["Durak Kodu"] : "",
+      index === 0 ? seciliDurak["Durak Adı"] : "",
+      index === 0 ? seciliDurak["Durak Tipi"] : "",
+      index === 0 ? seciliDurak["Durak İlçe"] : "",
+      index === 0 ? seciliDurak["Durak Mahalle"] : "",
+      index === 0 ? seciliDurak["Günlük Ortalama Yolcu Sayısı"] : "",
+      isim,
+      kategori
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "Sonuclar");
+
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([wbout], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `durak_sonuclari_${seciliDurak["Durak Kodu"]}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function tumDuraklariGoster() {
+  if (duraklar.length === 0) return alert("Durak verisi henüz yüklenmedi!");
+
+  if (duraklarGosterildi) {
+    clusterGroup.clearLayers();
+    duraklarGosterildi = false;
+    return;
+  }
+
+  clusterGroup.clearLayers();
+
+  // 🔍 Filtre değerlerini al
+  const secilenTip = document.getElementById("filtreDurakTipi").value;
+  const secilenIlce = document.getElementById("filtreIlce").value;
+
+  // 🔁 Filtre uygulanmış duraklar
+  const filtrelenmisDuraklar = duraklar.filter(durak => {
+    const tipUyar = !secilenTip || durak["Durak Tipi"] === secilenTip;
+    const ilceUyar = !secilenIlce || durak["Durak İlçe"] === secilenIlce;
+    return tipUyar && ilceUyar;
+  });
+
+  filtrelenmisDuraklar.forEach(durak => {
+    const lat = parseFloat(durak.boylam);
+    const lon = parseFloat(durak.enlem);
+    if (!lat || !lon) return;
+
+    const marker = L.marker([lat, lon])
+      .bindPopup(`
+        <b>${durak["Durak Adı"]}</b><br>
+        Kodu: ${durak["Durak Kodu"]}<br>
+        İlçe: ${durak["Durak İlçe"] || "-" }<br>
+        Mahalle: ${durak["Durak Mahalle"] || "-" }<br>
+        Yolcu: ${durak["Günlük Ortalama Yolcu Sayısı"] || "-" }
+      `)
+      .on("click", () => {
+        document.getElementById("durakKodu").value = durak["Durak Kodu"];
+        document.getElementById("lat").value = lat;
+        document.getElementById("lon").value = lon;
+      });
+
+    clusterGroup.addLayer(marker);
+  });
+
+  map.setView([41.0663, 28.9960], 13);
+  duraklarGosterildi = true;
+}
+function secimleriTemizle() {
+  // Form alanlarını sıfırla
+  document.getElementById("durakKodu").value = "";
+  document.getElementById("lat").value = "41.0663";
+  document.getElementById("lon").value = "28.9960";
+  document.getElementById("radius").value = 300;
+
+  // Filtre dropdownlarını sıfırla (varsa)
+  const filtreDurakTipi = document.getElementById("filtreDurakTipi");
+  const filtreIlce = document.getElementById("filtreIlce");
+  if (filtreDurakTipi) filtreDurakTipi.selectedIndex = 0;
+  if (filtreIlce) filtreIlce.selectedIndex = 0;
+
+  // Harita üzerindeki işaretçileri temizle
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  // Daireyi kaldır
+  if (circle) {
+    map.removeLayer(circle);
+    circle = null;
+  }
+
+  // Sonuç listesini ve sayaç bilgisini temizle
+  document.getElementById("sonuclar").innerHTML = "";
+  document.getElementById("adet").textContent = "0";
+
+  // Seçili durağı sıfırla
+  seciliDurak = null;
+
+  // Cluster'ı temizle ve haritayı varsayılana döndür
+  clusterGroup.clearLayers();
+  duraklarGosterildi = false;
+
+  map.setView([41.0663, 28.9960], 13);
+}
+</script>
+</body>
+</html>

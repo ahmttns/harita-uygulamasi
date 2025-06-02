@@ -119,8 +119,8 @@
     <h3>📍 Arama</h3>
     <input type="text" id="durakKodu" placeholder="Durak Kodu" />
     <button onclick="duragaGit()">🔍 Durak Koduyla Git</button>
-    <input type="text" id="lat" value="41.0663" placeholder="Enlem" />
-    <input type="text" id="lon" value="28.9960" placeholder="Boylam" />
+    <input type="text" id="lat" value="" placeholder="Enlem" />
+    <input type="text" id="lon" value="" placeholder="Boylam" />
     <input type="number" id="radius" value="300" placeholder="Yarıçap (m)" />
     <button onclick="koordinatlaAra()">📍 Koordinata Git ve Ara</button>
     <button onclick="secimleriTemizle()">🧹 Seçimleri Temizle</button>
@@ -239,10 +239,11 @@
         const marker = L.marker([lat, lon])
           .bindPopup(`
             <b>${durak["Durak Adı"]}</b><br>
-            Kodu: ${durak["Durak Kodu"]}<br>
-            İlçe: ${durak["Durak İlçe"] || "-"}<br>
-            Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
-            Yolcu: ${durak["Günlük Ortalama Yolcu Sayısı"] || "-"}
+            Durak Kodu: ${durak["Durak Kodu"]}<br>
+            Durak İlçe: ${durak["Durak İlçe"] || "-"}<br>
+            Durak Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
+            Durak Tip: ${durak["Durak Tipi"]}<br>
+            Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"] || "-"}
           `)
           .on("click", () => {
             document.getElementById("durakKodu").value = durak["Durak Kodu"];
@@ -278,8 +279,15 @@
   }
 
   seciliDurakMarker = L.marker([lat, lon]).addTo(map)
-    .bindPopup(`<b>${durak["Durak Adı"]}</b><br>İlçe: ${durak["Durak İlçe"]}`)
-    .openPopup();
+  .bindPopup(`
+    <b>${durak["Durak Adı"]}</b><br>
+    Durak Kodu: ${durak["Durak Kodu"]}<br>
+    Durak İlçe: ${durak["Durak İlçe"]}<br>
+    Durak Mahalle: ${durak["Durak Mahalle"]}<br>
+    Durak Tip: ${durak["Durak Tipi"]}<br>
+    Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"]}
+  `)
+  .openPopup();
 
   map.setView([lat, lon], 17);
 
@@ -305,16 +313,44 @@
       map.setView([lat, lon], 16);
       circle = L.circle([lat, lon], { radius: radius, color: 'blue', fillOpacity: 0.1 }).addTo(map);
 
-      const query = `
+    const query = `
 [out:json][timeout:25];
 (
   node["amenity"="hospital"](around:${radius},${lat},${lon});
+  way["amenity"="hospital"](around:${radius},${lat},${lon});
+  relation["amenity"="hospital"](around:${radius},${lat},${lon});
+
   node["amenity"="clinic"](around:${radius},${lat},${lon});
+  way["amenity"="clinic"](around:${radius},${lat},${lon});
+  relation["amenity"="clinic"](around:${radius},${lat},${lon});
+
   node["amenity"="school"](around:${radius},${lat},${lon});
+  way["amenity"="school"](around:${radius},${lat},${lon});
+  relation["amenity"="school"](around:${radius},${lat},${lon});
+
   node["amenity"="university"](around:${radius},${lat},${lon});
+  way["amenity"="university"](around:${radius},${lat},${lon});
+  relation["amenity"="university"](around:${radius},${lat},${lon});
+
   node["shop"="mall"](around:${radius},${lat},${lon});
+  way["shop"="mall"](around:${radius},${lat},${lon});
+  relation["shop"="mall"](around:${radius},${lat},${lon});
+
   node["tourism"="museum"](around:${radius},${lat},${lon});
+  way["tourism"="museum"](around:${radius},${lat},${lon});
+  relation["tourism"="museum"](around:${radius},${lat},${lon});
+
   node["station"="subway"](around:${radius},${lat},${lon});
+  way["station"="subway"](around:${radius},${lat},${lon});
+  relation["station"="subway"](around:${radius},${lat},${lon});
+
+  node["amenity"="community_centre"](around:${radius},${lat},${lon});
+  way["amenity"="community_centre"](around:${radius},${lat},${lon});
+  relation["amenity"="community_centre"](around:${radius},${lat},${lon});
+
+  node["amenity"="cultural_centre"](around:${radius},${lat},${lon});
+  way["amenity"="cultural_centre"](around:${radius},${lat},${lon});
+  relation["amenity"="cultural_centre"](around:${radius},${lat},${lon});
 );
 out center;
 `;
@@ -418,8 +454,8 @@ out center;
     // Seçimleri temizle
     function secimleriTemizle() {
       document.getElementById("durakKodu").value = "";
-      document.getElementById("lat").value = "41.0663";
-      document.getElementById("lon").value = "28.9960";
+      document.getElementById("lat").value = "";
+      document.getElementById("lon").value = "";
       document.getElementById("radius").value = 300;
 
       document.getElementById("sonuclar").innerHTML = "";

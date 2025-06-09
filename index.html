@@ -4,107 +4,156 @@
   <meta charset="UTF-8" />
   <title>Durak Haritası</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <style>
-    :root {
-      --bg: #f9f9f9;
-      --fg: #1e1e1e;
-      --panel: #ffffff;
-      --primary: #007bff;
-    }
-    body.dark-mode {
-      --bg: #1e1e1e;
-      --fg: #f9f9f9;
-      --panel: #2c2c2c;
-      --primary: #3399ff;
-    }
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-    }
-    #map {
-      height: 100vh;
-      width: 100vw;
-    }
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  :root {
+    --bg: #f9f9f9;
+    --fg: #1e1e1e;
+    --panel: #ffffff;
+    --primary: #007bff;
+  }
+
+  body.dark-mode {
+    --bg: #1e1e1e;
+    --fg: #f9f9f9;
+    --panel: #2c2c2c;
+    --primary: #3399ff;
+  }
+
+  #map {
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #panel {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    z-index: 1000;
+    background: var(--panel);
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: 280px;
+    max-width: 90%;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    transition: all 0.3s ease;
+  }
+
+  input, select, button {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  button {
+    background-color: var(--primary);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  h3, h4 {
+    margin-top: 0;
+    font-size: 16px;
+  }
+
+  #topButtons {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1100;
+    display: flex;
+    gap: 8px;
+  }
+
+  #topButtons button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--primary);
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  #topButtons button:hover {
+    background-color: #0056b3;
+  }
+
+  @media screen and (max-width: 600px) {
     #panel {
-      position: absolute;
-      top: 60px;
+      width: calc(100vw - 40px);
       left: 10px;
-      z-index: 1000;
-      background: var(--panel);
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      width: 280px;
-      max-width: 90%;
-      transition: all 0.3s ease;
+      right: 10px;
+      top: 10px;
+      max-height: calc(100vh - 40px);
     }
-    input, select, button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    button {
-      background-color: var(--primary);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      border: none;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-    h3, h4 {
-      margin-top: 0;
-      font-size: 16px;
+    #panelToggleBtn {
+      left: 200px !important;
     }
     #topButtons {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1100;
-      display: flex;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
     }
-    #topButtons button {
-      padding: 6px 12px;
-      border-radius: 6px;
-      background-color: var(--primary);
-      color: white;
-      font-size: 13px;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    #topButtons button:hover {
-      background-color: #0056b3;
-    }
-    @media screen and (max-width: 600px) {
-      #panel {
-        width: calc(100vw - 40px);
-        left: 10px;
-        right: 10px;
-        top: 10px;
-      }
-      #panelToggleBtn {
-        left: 200px !important;
-      }
-    }
-  </style>
+  }
+
+  #fotoModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .foto-modal-goster {
+    display: flex !important;
+  }
+
+  .rota-nokta {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+  }
+</style>
+
 </head>
 <body>
   <div id="topButtons">
-    <button id="themeToggleBtn">🌙 Koyu Mod</button>
+    <button id="themeToggleBtn" onclick="temaDegistir()">🌙 Koyu Mod</button>
     <button id="panelToggleBtn">⬅️ Paneli Gizle</button>
   </div>
 
@@ -116,6 +165,20 @@
     <label>İlçe:
       <select id="filtreIlce"><option value="">Hepsi</option></select>
     </label>
+    <label for="filtreAkilliDurak">Akıllı Durak:</label>
+<select id="filtreAkilliDurak" class="form-select">
+  <option value="">Tümü</option>
+  <option value="VAR">VAR</option>
+  <option value="YOK">YOK</option>
+</select>
+
+<label for="filtreEnerjiDurumu">Enerji Durumu:</label>
+<select id="filtreEnerjiDurumu" class="form-select">
+  <option value="">Tümü</option>
+  <option value="VAR">VAR</option>
+  <option value="YOK">YOK</option>
+</select>
+
     <h3>📍 Arama</h3>
     <input type="text" id="durakKodu" placeholder="Durak Kodu" />
     <button onclick="duragaGit()">🔍 Durak Koduyla Git</button>
@@ -124,6 +187,9 @@
     <input type="number" id="radius" value="300" placeholder="Yarıçap (m)" />
     <button onclick="koordinatlaAra()">📍 Koordinata Git ve Ara</button>
     <button onclick="secimleriTemizle()">🧹 Seçimleri Temizle</button>
+    <button onclick="konumuGoster()">📍 Konumunuz</button>
+    <input type="text" id="cokluDurakKodlari" placeholder="Durak Kodları (virgülle ayır)" />
+    <button onclick="rotaCizKonumdanDuraklara()">🚌 Duraktan Durağa Rota</button>
     <h4>📌 <span id="adet">0</span> sonuç</h4>
     <ul id="sonuclar" style="max-height: 100px; overflow-y: auto; padding-left: 20px;"></ul>
     <button onclick="excelAktar()">📁 Sonuçları Excel'e Aktar</button>
@@ -134,8 +200,16 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
   <script>
-   let duraklar = [];
+  let rotaPolyline = null;
+  let aktifDuraktanDuragaRota = null;
+  let rotaNumaralar = [];
+  let konumKoordinat = null;
+  let rotaKontrol = null;
+  let aktifFotoIndex = 0;
+  let aktifFotoListe = [];
+  let duraklar = [];
   let seciliDurak = null;
   let seciliDurakMarker = null;  // ← Buraya ekle
   let markers = [];
@@ -143,8 +217,15 @@
   let duraklarGosterildi = false;
 
     const map = L.map('map', { zoomControl: false }).setView([41.0663, 28.9960], 13);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+  const lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap & CartoDB',
+});
+
+const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap & CartoDB',
+});
+    lightTileLayer.addTo(map);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     const clusterGroup = L.markerClusterGroup();
     map.addLayer(clusterGroup);
@@ -199,98 +280,335 @@
       panelToggleBtn.textContent = panelVisible ? "⬅️ Paneli Gizle" : "➡️ Paneli Göster";
     });
 
-    // Koyu mod / açık mod
-    const themeToggleBtn = document.getElementById("themeToggleBtn");
-    themeToggleBtn.addEventListener("click", () => {
-      document.body.classList.toggle("dark-mode");
-      const isDark = document.body.classList.contains("dark-mode");
-      themeToggleBtn.textContent = isDark ? "🌞 Açık Mod" : "🌙 Koyu Mod";
-    });
+    
 
-    // Tüm durakları göster (filtreli)
-    function tumDuraklariGoster() {
-      if(duraklar.length === 0) {
-        alert("Durak verisi henüz yüklenmedi!");
-        return;
-      }
+   function tumDuraklariGoster() {
+  if (duraklar.length === 0) {
+    alert("Durak verisi henüz yüklenmedi!");
+    return;
+  }
 
-      if(duraklarGosterildi) {
-        clusterGroup.clearLayers();
-        duraklarGosterildi = false;
-        return;
-      }
+  if (duraklarGosterildi) {
+    clusterGroup.clearLayers();
+    duraklarGosterildi = false;
+    return;
+  }
 
-      clusterGroup.clearLayers();
+  clusterGroup.clearLayers();
 
-      const secilenTip = document.getElementById("filtreDurakTipi").value;
-      const secilenIlce = document.getElementById("filtreIlce").value;
+  const secilenTip = document.getElementById("filtreDurakTipi").value;
+  const secilenIlce = document.getElementById("filtreIlce").value;
+  const secilenAkilli = document.getElementById("filtreAkilliDurak").value;
+  const secilenEnerji = document.getElementById("filtreEnerjiDurumu").value;
 
-      const filtrelenmisDuraklar = duraklar.filter(d => {
-        const tipUyar = !secilenTip || d["Durak Tipi"] === secilenTip;
-        const ilceUyar = !secilenIlce || d["Durak İlçe"] === secilenIlce;
-        return tipUyar && ilceUyar;
+  const filtrelenmisDuraklar = duraklar.filter(d => {
+    const tipUyar = !secilenTip || d["Durak Tipi"] === secilenTip;
+    const ilceUyar = !secilenIlce || d["Durak İlçe"] === secilenIlce;
+    const akilliUyar = !secilenAkilli || d["Akıllı Durak Durumu"] === secilenAkilli;
+    const enerjiUyar = !secilenEnerji || d["Enerji Durumu"] === secilenEnerji;
+    return tipUyar && ilceUyar && akilliUyar && enerjiUyar;
+  });
+
+  filtrelenmisDuraklar.forEach(durak => {
+    const lat = parseFloat(durak.boylam);
+    const lon = parseFloat(durak.enlem);
+    if (!lat || !lon) return;
+
+    const popupDiv = document.createElement("div");
+popupDiv.innerHTML = `
+  <b>${durak["Durak Adı"]}</b><br>
+  Durak Kodu: ${durak["Durak Kodu"]}<br>
+  Durak İlçe: ${durak["Durak İlçe"] || "-"}<br>
+  Durak Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
+  Durak Tip: ${durak["Durak Tipi"]}<br>
+  Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"]}<br>
+  Akıllı Durak Durumu: ${durak["Akıllı Durak Durumu"] || "-"}<br>
+  Enerji Durumu: ${durak["Enerji Durumu"] || "-"}<br>
+  Cihaz Ip: ${durak["Cihaz Ip"] || "YOK"}<br>
+  Cihaz Tipi: ${durak["Cihaz Tipi"] || "YOK"}<br>
+  <a href="https://www.google.com/maps/dir/?api=1&destination=${parseFloat(durak.boylam)},${parseFloat(durak.enlem)}"
+     target="_blank"
+     style="display:inline-block;margin-top:8px;color:var(--primary);text-decoration:none;font-weight:bold;">
+     📍 Yol Tarifi Al
+  </a><br>
+  <div id="fotoKapsayici_${durak["Durak Kodu"]}" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>
+  <input type="file" accept="image/*" multiple onchange="fotoYukle(event, '${durak["Durak Kodu"]}')"/>
+`;
+    popupDiv.addEventListener("click", e => e.stopPropagation());
+
+    const marker = L.marker([lat, lon])
+      .bindPopup(popupDiv)
+      .on("popupopen", () => {
+        const kapsayici = document.getElementById("fotoKapsayici_" + durak["Durak Kodu"]);
+        kapsayici.innerHTML = "";
+
+        (durak.FotoListesi || []).forEach((fotoBase64, index) => {
+          const kutu = document.createElement("div");
+          kutu.style.position = "relative";
+          kutu.style.width = "70px";
+          kutu.style.height = "70px";
+
+          const img = document.createElement("img");
+          img.src = fotoBase64;
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "cover";
+          img.style.borderRadius = "6px";
+          img.style.cursor = "pointer";
+          img.onclick = () => window.fotoModaliAc(durak.FotoListesi, index);
+
+          const btn = document.createElement("button");
+          btn.textContent = "✖";
+          btn.style.position = "absolute";
+          btn.style.top = "-8px";
+          btn.style.right = "-8px";
+          btn.style.background = "red";
+          btn.style.color = "white";
+          btn.style.border = "none";
+          btn.style.borderRadius = "50%";
+          btn.style.cursor = "pointer";
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const eminMisin = confirm("Bu fotoğrafı silmek istediğinizden emin misiniz?");
+            if (!eminMisin) return;
+            kapsayici.removeChild(kutu);
+            durak.FotoListesi.splice(index, 1);
+          };
+
+          kutu.appendChild(img);
+          kutu.appendChild(btn);
+          kapsayici.appendChild(kutu);
+        });
+
+        // 🧠 Durak bilgilerini inputlara otomatik yaz
+        document.getElementById("durakKodu").value = durak["Durak Kodu"] || "";
+        document.getElementById("lat").value = lat;
+        document.getElementById("lon").value = lon;
+
+        // ✅ Harita yeniden boyutlandırılsın
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 200);
       });
 
-      filtrelenmisDuraklar.forEach(durak => {
-        const lat = parseFloat(durak.boylam);
-        const lon = parseFloat(durak.enlem);
-        if(!lat || !lon) return;
+    clusterGroup.addLayer(marker);
+  });
 
-        const marker = L.marker([lat, lon])
-          .bindPopup(`
-            <b>${durak["Durak Adı"]}</b><br>
-            Durak Kodu: ${durak["Durak Kodu"]}<br>
-            Durak İlçe: ${durak["Durak İlçe"] || "-"}<br>
-            Durak Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
-            Durak Tip: ${durak["Durak Tipi"]}<br>
-            Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"] || "-"}
-          `)
-          .on("click", () => {
-            document.getElementById("durakKodu").value = durak["Durak Kodu"];
-            document.getElementById("lat").value = lat;
-            document.getElementById("lon").value = lon;
+  map.setView([41.0663, 28.9960], 13);
+  duraklarGosterildi = true;
+}
+function konumuGoster() {
+  if (!navigator.geolocation) {
+    alert("Tarayıcınız konum servislerini desteklemiyor.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    const userLat = pos.coords.latitude;
+    const userLon = pos.coords.longitude;
+
+    const konumMarker = L.circleMarker([userLat, userLon], {
+      radius: 8,
+      color: "#007bff",
+      fillColor: "#007bff",
+      fillOpacity: 0.8
+    }).addTo(map);
+
+    konumMarker.bindPopup("📍 Konumunuz").openPopup();
+    map.setView([userLat, userLon], 15);
+
+    const yakinDuraklar = duraklar
+      .map(d => {
+        const lat = parseFloat(d.boylam);
+        const lon = parseFloat(d.enlem);
+        if (!lat || !lon) return null;
+        const mesafe = map.distance([userLat, userLon], [lat, lon]);
+        d.mesafe = mesafe;
+        return d;
+      })
+      .filter(d => d !== null)
+      .sort((a, b) => a.mesafe - b.mesafe)
+      .slice(0, 3);
+
+    yakinDuraklar.forEach(d => {
+      const lat = parseFloat(d.boylam);
+      const lon = parseFloat(d.enlem);
+
+      const popupDiv = document.createElement("div");
+      popupDiv.innerHTML = `
+        <b>${d["Durak Adı"]}</b><br>
+        Durak Kodu: ${d["Durak Kodu"]}<br>
+        Durak İlçe: ${d["Durak İlçe"] || "-"}<br>
+        Durak Mahalle: ${d["Durak Mahalle"] || "-"}<br>
+        Durak Tip: ${d["Durak Tipi"]}<br>
+        Günlük Ortalama Yolcu Sayısı: ${d["Günlük Ortalama Yolcu Sayısı"] || "-"}<br>
+        Akıllı Durak Durumu: ${d["Akıllı Durak Durumu"] || "-"}<br>
+        Enerji Durumu: ${d["Enerji Durumu"] || "-"}<br>
+        Cihaz Ip: ${d["Cihaz Ip"] || "YOK"}<br>
+        Cihaz Tipi: ${d["Cihaz Tipi"] || "YOK"}<br>
+        Mesafe: ${Math.round(d.mesafe)} metre<br>
+        <div id="fotoKapsayici_${d["Durak Kodu"]}" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>
+        <input type="file" accept="image/*" multiple onchange="fotoYukle(event, '${d["Durak Kodu"]}')"/>
+      `;
+
+      const marker = L.marker([lat, lon])
+        .addTo(map)
+        .bindPopup(popupDiv)
+        .on("popupopen", () => {
+          const kapsayici = document.getElementById("fotoKapsayici_" + d["Durak Kodu"]);
+          kapsayici.innerHTML = "";
+
+          (d.FotoListesi || []).forEach((base64, index) => {
+            const kutu = document.createElement("div");
+            kutu.style.position = "relative";
+            kutu.style.width = "70px";
+            kutu.style.height = "70px";
+
+            const img = document.createElement("img");
+            img.src = base64;
+            img.style.width = "100%";
+            img.style.height = "100%";
+            img.style.objectFit = "cover";
+            img.style.borderRadius = "6px";
+            img.style.cursor = "pointer";
+            img.onclick = () => {
+              window.fotoModaliAc(d.FotoListesi, index);
+            };
+
+            const btn = document.createElement("button");
+            btn.textContent = "✖";
+            btn.style.position = "absolute";
+            btn.style.top = "-8px";
+            btn.style.right = "-8px";
+            btn.style.background = "red";
+            btn.style.color = "white";
+            btn.style.border = "none";
+            btn.style.borderRadius = "50%";
+            btn.style.cursor = "pointer";
+            btn.onclick = (e) => {
+              e.stopPropagation();
+              const eminMisin = confirm("Bu fotoğrafı silmek istediğinizden emin misiniz?");
+              if (!eminMisin) return;
+
+              kapsayici.removeChild(kutu);
+              d.FotoListesi.splice(index, 1);
+            };
+
+            kutu.appendChild(img);
+            kutu.appendChild(btn);
+            kapsayici.appendChild(kutu);
           });
 
-        clusterGroup.addLayer(marker);
-      });
+          // ✅ Paneli doldur
+          document.getElementById("durakKodu").value = d["Durak Kodu"] || "";
+          document.getElementById("lat").value = lat;
+          document.getElementById("lon").value = lon;
 
-      map.setView([41.0663, 28.9960], 13);
-      duraklarGosterildi = true;
-    }
+          // ✅ Harita yeniden boyutlandırılsın ki modal düzgün açılsın
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 200);
+        });
+    });
 
+  }, err => {
+    alert("Konum alınamadı: " + err.message);
+  });
+}
     
-   function duragaGit() {
+  function duragaGit() {
   const kod = document.getElementById("durakKodu").value.trim().toLowerCase();
-  const durak = duraklar.find(d => d["Durak Kodu"] && d["Durak Kodu"].toString().trim().toLowerCase() === kod);
+  const durak = duraklar.find(d => d["Durak Kodu"]?.toString().trim().toLowerCase() === kod);
   if (!durak) {
     alert("Durak kodu bulunamadı!");
     return;
   }
+
   if (seciliDurakMarker) {
     map.removeLayer(seciliDurakMarker);
   }
-  seciliDurak = durak;
 
-  const lat = parseFloat(durak.boylam); // enlem
-  const lon = parseFloat(durak.enlem); // boylam
+  seciliDurak = durak;
+  const lat = parseFloat(durak.boylam);
+  const lon = parseFloat(durak.enlem);
   if (!lat || !lon) {
     alert("Koordinatlar eksik!");
     return;
   }
 
+  const popupDiv = document.createElement("div");
+popupDiv.innerHTML = `
+  <b>${durak["Durak Adı"]}</b><br>
+  Durak Kodu: ${durak["Durak Kodu"]}<br>
+  Durak İlçe: ${durak["Durak İlçe"] || "-"}<br>
+  Durak Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
+  Durak Tip: ${durak["Durak Tipi"]}<br>
+  Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"]}<br>
+  Akıllı Durak Durumu: ${durak["Akıllı Durak Durumu"] || "-"}<br>
+  Enerji Durumu: ${durak["Enerji Durumu"] || "-"}<br>
+  Cihaz Ip: ${durak["Cihaz Ip"] || "YOK"}<br>
+  Cihaz Tipi: ${durak["Cihaz Tipi"] || "YOK"}<br>
+  <a href="https://www.google.com/maps/dir/?api=1&destination=${parseFloat(durak.boylam)},${parseFloat(durak.enlem)}"
+     target="_blank"
+     style="display:inline-block;margin-top:8px;color:var(--primary);text-decoration:none;font-weight:bold;">
+     📍 Yol Tarifi Al
+  </a><br>
+  <div id="fotoKapsayici_${durak["Durak Kodu"]}" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>
+  <input type="file" accept="image/*" multiple onchange="fotoYukle(event, '${durak["Durak Kodu"]}')"/>   
+`;
+
   seciliDurakMarker = L.marker([lat, lon]).addTo(map)
-  .bindPopup(`
-    <b>${durak["Durak Adı"]}</b><br>
-    Durak Kodu: ${durak["Durak Kodu"]}<br>
-    Durak İlçe: ${durak["Durak İlçe"]}<br>
-    Durak Mahalle: ${durak["Durak Mahalle"]}<br>
-    Durak Tip: ${durak["Durak Tipi"]}<br>
-    Günlük Ortalama Yolcu Sayısı: ${durak["Günlük Ortalama Yolcu Sayısı"]}
-  `)
-  .openPopup();
+    .bindPopup(popupDiv)
+    .on("popupopen", () => {
+      const kapsayici = document.getElementById("fotoKapsayici_" + durak["Durak Kodu"]);
+      kapsayici.innerHTML = "";
+
+      (durak.FotoListesi || []).forEach((base64, index) => {
+        const kutu = document.createElement("div");
+        kutu.style.position = "relative";
+        kutu.style.width = "70px";
+        kutu.style.height = "70px";
+
+        const img = document.createElement("img");
+        img.src = base64;
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "6px";
+        img.style.cursor = "pointer";
+        img.onclick = () => fotoModaliAc(durak.FotoListesi, index);
+
+        const btn = document.createElement("button");
+        btn.textContent = "✖";
+        btn.style.position = "absolute";
+        btn.style.top = "-8px";
+        btn.style.right = "-8px";
+        btn.style.background = "red";
+        btn.style.color = "white";
+        btn.style.border = "none";
+        btn.style.borderRadius = "50%";
+        btn.style.cursor = "pointer";
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const eminMisin = confirm("Bu fotoğrafı silmek istediğinizden emin misiniz?");
+          if (!eminMisin) return;
+          kapsayici.removeChild(kutu);
+          durak.FotoListesi.splice(index, 1);
+        };
+
+        kutu.appendChild(img);
+        kutu.appendChild(btn);
+        kapsayici.appendChild(kutu);
+      });
+
+      // 🔧 Eklenen kısım: popup yeniden açıldığında harita yeniden boyutlanır
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
+    })
+    .openPopup();
 
   map.setView([lat, lon], 17);
-
   document.getElementById("lat").value = lat;
   document.getElementById("lon").value = lon;
 }
@@ -414,7 +732,7 @@ out center;
       }
 
       const rows = [
-        ["Durak Kodu", "Durak Adı", "Durak Tipi", "İlçe", "Mahalle", "Yolcu Sayısı", "Yer İsmi", "Kategori"]
+        ["Durak Kodu", "Durak Adı", "Durak Tipi", "İlçe", "Mahalle", "Yolcu Sayısı", "Akıllı Durak", "Enerji", "Cihaz Tipi", "Cihaz IP","Yer İsmi", "Kategori"]
       ];
 
       markers.forEach((m, index) => {
@@ -430,6 +748,10 @@ out center;
           index === 0 ? seciliDurak["Durak İlçe"] : "",
           index === 0 ? seciliDurak["Durak Mahalle"] : "",
           index === 0 ? seciliDurak["Günlük Ortalama Yolcu Sayısı"] : "",
+          index === 0 ? seciliDurak["Akıllı Durak Durumu"] : "",
+          index === 0 ? seciliDurak["Enerji Durumu"] : "",
+          index === 0 ? seciliDurak["Cihaz Tipi"] : "",
+          index === 0 ? seciliDurak["Cihaz Ip"] : "",
           isim,
           kategori
         ]);
@@ -453,33 +775,352 @@ out center;
 
     // Seçimleri temizle
     function secimleriTemizle() {
-      document.getElementById("durakKodu").value = "";
-      document.getElementById("lat").value = "";
-      document.getElementById("lon").value = "";
-      document.getElementById("radius").value = 300;
+  document.getElementById("durakKodu").value = "";
+  document.getElementById("lat").value = "";
+  document.getElementById("lon").value = "";
+  document.getElementById("radius").value = 300;
+  document.getElementById("cokluDurakKodlari").value = "";
+  document.getElementById("sonuclar").innerHTML = "";
+  document.getElementById("adet").textContent = "0";
 
-      document.getElementById("sonuclar").innerHTML = "";
-      document.getElementById("adet").textContent = "0";
+  // Çemberi kaldır
+  if (circle) {
+    map.removeLayer(circle);
+    circle = null;
+  }
 
-      if(circle) {
-        map.removeLayer(circle);
-        circle = null;
-      }
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
+  // Haritadaki yer markerlarını kaldır
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
 
-      if(seciliDurakMarker) {
-        map.removeLayer(seciliDurakMarker);
-        seciliDurakMarker = null;
-      }
+  // Seçili durağı kaldır
+  if (seciliDurakMarker) {
+    map.removeLayer(seciliDurakMarker);
+    seciliDurakMarker = null;
+  }
 
-      clusterGroup.clearLayers();
-      duraklarGosterildi = false;
+  // Rota varsa sil
+  if (aktifDuraktanDuragaRota) {
+    map.removeControl(aktifDuraktanDuragaRota);
+    aktifDuraktanDuragaRota = null;
+  }
 
+  // Numaralandırılmış durak markerlarını sil
+  if (window.durakNumaralari && Array.isArray(window.durakNumaralari)) {
+    window.durakNumaralari.forEach(m => map.removeLayer(m));
+    window.durakNumaralari = [];
+  }
+
+  // Kümelenmiş markerları sil
+  clusterGroup.clearLayers();
+  duraklarGosterildi = false;
+  seciliDurak = null;
+
+  // Konuma geri dön
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      map.setView([lat, lon], 15);
+    }, () => {
       map.setView([41.0663, 28.9960], 13);
-      seciliDurak = null;
+    });
+  } else {
+    map.setView([41.0663, 28.9960], 13);
+  }
+  if (aktifDuraktanDuragaRota) {
+  map.removeControl(aktifDuraktanDuragaRota);
+  aktifDuraktanDuragaRota = null;
+}
+rotaNumaralar.forEach(m => map.removeLayer(m));
+rotaNumaralar = [];
+
+}
+
+    
+    let suAnkiTema = "light";
+    
+    function temaDegistir() {
+  const body = document.body;
+  const panel = document.getElementById("panel");
+  const temaBtn = document.getElementById("themeToggleBtn");
+
+  if (suAnkiTema === "light") {
+    body.classList.add("dark-mode");
+    panel.classList.add("dark-mode");
+    map.removeLayer(lightTileLayer);
+    darkTileLayer.addTo(map);
+    temaBtn.innerText = "🌞 Açık Mod";
+    suAnkiTema = "dark";
+  } else {
+    body.classList.remove("dark-mode");
+    panel.classList.remove("dark-mode");
+    map.removeLayer(darkTileLayer);
+    lightTileLayer.addTo(map);
+    temaBtn.innerText = "🌙 Koyu Mod";
+    suAnkiTema = "light";
+  }
+}
+
+// 🔽 TEMA DIŞINDAKİ ALANA AL
+function fotoYukle(event, durakKodu) {
+  const dosyalar = event.target.files;
+  if (!dosyalar.length) return;
+  const eminMisin = confirm(`${dosyalar.length} fotoğraf yüklemek istediğinize emin misiniz?`);
+if (!eminMisin) {
+  event.target.value = ""; // input'u sıfırla
+  return;
+}
+
+  const kapsayici = document.getElementById("fotoKapsayici_" + durakKodu);
+  if (!kapsayici) return;
+
+  [...dosyalar].forEach(dosya => {
+    const okuyucu = new FileReader();
+    okuyucu.onload = function (e) {
+      const base64 = e.target.result;
+
+      // Görsel kutusu oluştur
+      const kutu = document.createElement("div");
+      kutu.style.position = "relative";
+      kutu.style.width = "70px";
+      kutu.style.height = "70px";
+
+      // Görsel
+      const img = document.createElement("img");
+      img.src = base64;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "6px";
+      img.style.cursor = "pointer";
+      img.onclick = () => {
+  document.getElementById("modalFoto").src = base64;
+  document.getElementById("fotoModal").classList.add("foto-modal-goster");
+};
+
+      // Sil butonu
+      const btn = document.createElement("button");
+      btn.textContent = "✖";
+      btn.style.position = "absolute";
+      btn.style.top = "-8px";
+      btn.style.right = "-8px";
+      btn.style.background = "red";
+      btn.style.color = "white";
+      btn.style.border = "none";
+      btn.style.borderRadius = "50%";
+      btn.style.cursor = "pointer";
+      btn.onclick = () => kapsayici.removeChild(kutu);
+
+      kutu.appendChild(img);
+      kutu.appendChild(btn);
+      kapsayici.appendChild(kutu);
+
+      // Geçici olarak JSON'a kaydet (şimdilik)
+      const durak = duraklar.find(d => d["Durak Kodu"] === durakKodu);
+      if (durak) {
+        durak.FotoListesi = durak.FotoListesi || [];
+        durak.FotoListesi.push(base64);
+      }
+    };
+    okuyucu.readAsDataURL(dosya);
+  });
+}
+
+
+
+function fotoModaliAc(fotoListesi, index) {
+  if (!Array.isArray(fotoListesi) || fotoListesi.length === 0) return;
+
+  aktifFotoListesi = fotoListesi;
+  aktifFotoIndex = index;
+
+  const modal = document.getElementById("fotoModal");
+  const img = document.getElementById("modalFoto");
+
+  img.src = aktifFotoListesi[aktifFotoIndex];
+  modal.classList.add("foto-modal-goster");
+
+  // Önceki key handler'ı temizle
+  document.removeEventListener("keydown", window._fotoModalKeyHandler);
+
+  // Yeni handler tanımla
+  window._fotoModalKeyHandler = function (e) {
+    if (e.key === "Escape") {
+      kapatFoto();
+    } else if (e.key === "ArrowRight") {
+      aktifFotoIndex = (aktifFotoIndex + 1) % aktifFotoListesi.length;
+      img.src = aktifFotoListesi[aktifFotoIndex];
+    } else if (e.key === "ArrowLeft") {
+      aktifFotoIndex = (aktifFotoIndex - 1 + aktifFotoListesi.length) % aktifFotoListesi.length;
+      img.src = aktifFotoListesi[aktifFotoIndex];
+    }
+  };
+
+  // Yeni event listener ekle
+  document.addEventListener("keydown", window._fotoModalKeyHandler);
+}
+function klavyeIsle(e) {
+  if (!aktifFotoListesi.length) return;
+
+  if (e.key === "ArrowLeft") {
+    aktifIndex = (aktifIndex - 1 + aktifFotoListesi.length) % aktifFotoListesi.length;
+    document.getElementById("modalFoto").src = aktifFotoListesi[aktifIndex];
+  } else if (e.key === "ArrowRight") {
+    aktifIndex = (aktifIndex + 1) % aktifFotoListesi.length;
+    document.getElementById("modalFoto").src = aktifFotoListesi[aktifIndex];
+  } else if (e.key === "Escape") {
+    kapatFoto();
+  }
+}
+
+function kapatFoto() {
+  const modal = document.getElementById("fotoModal");
+  modal.classList.remove("foto-modal-goster");
+  aktifFotoListesi = [];
+  aktifFotoIndex = 0;
+
+  document.removeEventListener("keydown", window._fotoModalKeyHandler);
+}
+document.getElementById("fotoModal").addEventListener("click", (e) => {
+  if (e.target.id === "fotoModal") {
+    kapatFoto();
+  }
+});
+
+function rotaCizKonumdanDuraklara() {
+  const kodlarStr = document.getElementById("cokluDurakKodlari").value;
+  if (!kodlarStr) {
+    alert("Lütfen en az 1 durak kodu girin.");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Tarayıcınız konum servislerini desteklemiyor.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    const userLat = pos.coords.latitude;
+    const userLon = pos.coords.longitude;
+    konumKoordinat = [userLat, userLon];
+
+    const kodlar = kodlarStr.split(",").map(k => k.trim()).filter(k => k);
+    const duraklarListesi = kodlar.map(kod => {
+      return duraklar.find(d => d["Durak Kodu"]?.toString().trim() === kod);
+    });
+
+    if (duraklarListesi.includes(undefined)) {
+      alert("Girilen durak kodlarından bazıları bulunamadı!");
+      return;
     }
 
+    const waypoints = [L.latLng(userLat, userLon), ...duraklarListesi.map(d => L.latLng(parseFloat(d.boylam), parseFloat(d.enlem)))];
+
+    if (aktifDuraktanDuragaRota) {
+      map.removeControl(aktifDuraktanDuragaRota);
+    }
+
+    if (window.durakNumaralari && Array.isArray(window.durakNumaralari)) {
+      window.durakNumaralari.forEach(m => map.removeLayer(m));
+    }
+    window.durakNumaralari = [];
+
+    aktifDuraktanDuragaRota = L.Routing.control({
+      waypoints: waypoints,
+      routeWhileDragging: false,
+      show: false,
+      addWaypoints: false,
+      lineOptions: {
+        styles: [{ color: "#28a745", weight: 5 }]
+      },
+      createMarker: function(i, wp, nWps) {
+  if (!wp || !wp.latLng) return null;
+
+  const durak = duraklar.find(d =>
+    parseFloat(d.boylam) === wp.latLng.lat && parseFloat(d.enlem) === wp.latLng.lng
+  );
+
+  const marker = L.marker(wp.latLng, {
+    icon: L.divIcon({
+      className: 'rota-nokta',
+      html: `<div style='background:#28a745;color:#fff;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:13px;'>${i + 1}</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    })
+  });
+
+  // 🧠 Durak bulunduysa popup bilgisi ekle
+  if (durak) {
+    const popupHtml = `
+      <b>${durak["Durak Adı"]}</b><br>
+      Durak Kodu: ${durak["Durak Kodu"]}<br>
+      İlçe: ${durak["Durak İlçe"] || "-"}<br>
+      Mahalle: ${durak["Durak Mahalle"] || "-"}<br>
+      Tip: ${durak["Durak Tipi"]}<br>
+      Yolcu: ${durak["Günlük Ortalama Yolcu Sayısı"] || "-"}<br>
+      Akıllı Durak: ${durak["Akıllı Durak Durumu"] || "-"}<br>
+      Enerji: ${durak["Enerji Durumu"] || "-"}
+    `;
+    marker.bindPopup(popupHtml);
+  }
+
+  window.durakNumaralari.push(marker);
+  return marker;
+}
+    }).addTo(map);
+
+    map.fitBounds(L.latLngBounds(waypoints));
+  }, err => {
+    alert("Konum alınamadı: " + err.message);
+  });
+}
   </script>
+  <div id="fotoModal" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+">
+  <button id="kapatBtn" onclick="kapatFoto()" style="
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 10000;
+">✖</button>
+  <img id="modalFoto" src="" style="max-width: 90vw; max-height: 90vh; border-radius: 8px;" />
+</div>
+<div id="silModal" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 4000;
+  justify-content: center;
+  align-items: center;
+">
+  <div style="
+    background: white;
+    padding: 24px 32px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    max-width: 300px;
+    font-family: 'Inter', sans-serif;
+  ">
+    <p style="font-size: 16px; margin-bottom: 20px;">Bu fotoğrafı silmek istediğinizden emin misiniz?</p>
+    <button onclick="silOnayiEvet()" style="margin-right: 10px; padding: 6px 14px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">Evet</button>
+    <button onclick="silOnayiHayir()" style="padding: 6px 14px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Hayır</button>
+  </div>
+</div>
 </body>
 </html>
